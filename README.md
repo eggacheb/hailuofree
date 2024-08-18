@@ -123,76 +123,152 @@ https://udify.app/chat/uqBly3aW1LTwzzb3
 
 每次请求服务会从中挑选一个。
 
-## Docker部署
+当然,我会为您提供一个完整的、更新过的README文件。以下是完整的README内容:
 
-请准备一台具有公网IP的服务器并将8000端口开放。
+# hailuo-free-api
 
-拉取镜像并启动服务
+This project provides a free API for accessing Hailuo AI services, including chat completions, audio transcription and speech synthesis.
 
-```shell
-docker run -it -d --init --name hailuo-free-api -p 8000:8000 -e TZ=Asia/Shanghai vinlic/hailuo-free-api:latest
+## Configuration
+
+Before using the API, you need to configure your Hailuo AI tokens:
+
+1. Open the `data/tokens.json` file.
+
+2. Replace the placeholder tokens with your actual Hailuo AI tokens:
+
+   ```json
+   [
+     "your_token_1",
+     "your_token_2",
+     "your_token_3"
+   ]
+   ```
+
+3. (Optional) To set a custom token refresh interval, modify the `tokenRefreshInterval` value in `src/lib/config.ts`. The default is set to 7 days (in milliseconds):
+
+   ```typescript
+   tokenRefreshInterval = 7 * 24 * 60 * 60 * 1000; // 一周
+   ```
+
+## Token Management
+
+### Adding or Updating Tokens
+
+To add or update tokens, send a POST request to `/v1/token`. This endpoint now supports multiple formats for token submission:
+
+1. Comma-separated string:
+```bash
+curl -X POST http://localhost:8000/v1/token \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-hailuofreeapi" \
+  -d '{
+    "tokens": "token1,token2,token3"
+  }'
 ```
 
-查看服务实时日志
-
-```shell
-docker logs -f hailuo-free-api
+2. Array format:
+```bash
+curl -X POST http://localhost:8000/v1/token \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-hailuofreeapi" \
+  -d '{
+    "tokens": ["token1", "token2", "token3"]
+  }'
 ```
 
-重启服务
-
-```shell
-docker restart hailuo-free-api
+3. Single token string:
+```bash
+curl -X POST http://localhost:8000/v1/token \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-hailuofreeapi" \
+  -d '{
+    "tokens": "singleToken"
+  }'
 ```
 
-停止服务
+Note: The endpoint also supports using "token" instead of "tokens" in the request body.
 
-```shell
-docker stop hailuo-free-api
+### Manually Refreshing Tokens
+
+To manually trigger a token refresh, send a GET request to `/v1/token/refresh`:
+
+```bash
+curl -X GET http://localhost:8000/v1/token/refresh \
+  -H "Authorization: Bearer sk-hailuofreeapi"
 ```
 
-### Docker-compose部署
+### Checking Token Refresh Status
 
-```yaml
-version: '3'
+To check the status of the last token refresh operation, send a GET request to `/v1/refresh-status`:
 
-services:
-  hailuo-free-api:
-    container_name: hailuo-free-api
-    image: vinlic/hailuo-free-api:latest
-    restart: always
-    ports:
-      - "8000:8000"
-    environment:
-      - TZ=Asia/Shanghai
+```bash
+curl -X GET http://localhost:8000/v1/refresh-status \
+  -H "Authorization: Bearer sk-hailuofreeapi"
 ```
 
-### Render部署
+This will return information about the last refresh operation, including the timestamp, number of successful refreshes, and number of failed refreshes.
 
-**注意：部分部署区域可能无法连接hailuo，如容器日志出现请求超时或无法连接，请切换其他区域部署！**
-**注意：免费账户的容器实例将在一段时间不活动时自动停止运行，这会导致下次请求时遇到50秒或更长的延迟，建议查看[Render容器保活](https://github.com/LLM-Red-Team/free-api-hub/#Render%E5%AE%B9%E5%99%A8%E4%BF%9D%E6%B4%BB)**
+## Usage
 
-1. fork本项目到你的github账号下。
+Once deployed, you can use the API as follows:
 
-2. 访问 [Render](https://dashboard.render.com/) 并登录你的github账号。
+### Chat Completions
 
-3. 构建你的 Web Service（New+ -> Build and deploy from a Git repository -> Connect你fork的项目 -> 选择部署区域 -> 选择实例类型为Free -> Create Web Service）。
+Send a POST request to `/v1/chat/completions`:
 
-4. 等待构建完成后，复制分配的域名并拼接URL访问即可。
-
-### Vercel部署
-
-**注意：Vercel免费账户的请求响应超时时间为10秒，但接口响应通常较久，可能会遇到Vercel返回的504超时错误！**
-
-请先确保安装了Node.js环境。
-
-```shell
-npm i -g vercel --registry http://registry.npmmirror.com
-vercel login
-git clone https://github.com/LLM-Red-Team/hailuo-free-api
-cd hailuo-free-api
-vercel --prod
+```bash
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-hailuofreeapi" \
+  -d '{
+    "model": "hailuo",
+    "messages": [{"role": "user", "content": "Hello, how are you?"}]
+  }'
 ```
+
+### Audio Transcription
+
+Send a POST request to `/v1/audio/transcriptions`:
+
+```bash
+curl -X POST http://localhost:8000/v1/audio/transcriptions \
+  -H "Authorization: Bearer sk-hailuofreeapi" \
+  -F file=@/path/to/audio/file.mp3 \
+  -F model=hailuo
+```
+
+### Speech Synthesis
+
+Send a POST request to `/v1/audio/speech`:
+
+```bash
+curl -X POST http://localhost:8000/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-hailuofreeapi" \
+  -d '{
+    "model": "hailuo",
+    "input": "Hello, this is a test.",
+    "voice": "alloy"
+  }' \
+  --output speech.mp3
+```
+
+Note: Replace `sk-hailuofreeapi` with your actual API key if you've configured a custom one.
+
+## Important Notes
+
+- This API is for personal use only. Do not use it for commercial purposes or provide it as a service to others.
+- The API uses Hailuo AI's services, so be aware of any usage limitations or terms of service from Hailuo AI.
+- Keep your Hailuo AI tokens secure and do not share them publicly.
+- The system will automatically refresh tokens based on the configured interval. However, you can also manually trigger a refresh if needed.
+- Regularly check the token refresh status to ensure your tokens are being updated successfully.
+- The token management system supports multiple input formats, making it easier to add or update tokens.
+- You can use either "tokens" or "token" as the key in your JSON payload when adding or updating tokens.
+- When using the comma-separated string format, ensure there are no spaces between tokens.
+- The system will automatically handle different input formats, but make sure to send valid token strings.
+
+For more detailed information on available endpoints and options, please refer to the source code and comments within the project.
 
 ## 原生部署
 

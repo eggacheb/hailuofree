@@ -18,38 +18,43 @@ export default {
                     throw new APIException(EX.API_UNAUTHORIZED, 'Invalid API key');
                 }
 
-                let token = request.get('token');
+                const body = await request.json();
+                let tokens = body.tokens;
 
-                if (!token) {
-                    const body = await request.json();
-                    token = body.token;
+                if (!tokens || (!Array.isArray(tokens) && typeof tokens !== 'string')) {
+                    throw new APIException(EX.API_REQUEST_PARAMS_INVALID, 'Tokens must be an array or a string');
                 }
 
-                if (!token || typeof token !== 'string') {
-                    throw new APIException(EX.API_REQUEST_PARAMS_INVALID, 'Token is required and must be a string');
+                if (typeof tokens === 'string') {
+                    tokens = [tokens];
                 }
 
-                // 尝试刷新token
-                let newToken: string | null = null;
-                try {
-                    newToken = await refreshToken(token);
-                } catch (error) {
-                    logger.error(`Failed to refresh token: ${error.message}`);
-                    throw new APIException(EX.API_THIRD_PARTY_ERROR, 'Failed to refresh token. The provided token may be invalid or expired.');
+                const results = [];
+
+                for (const token of tokens) {
+                    if (typeof token !== 'string') {
+                        throw new APIException(EX.API_REQUEST_PARAMS_INVALID, 'Each token must be a string');
+                    }
+
+                    try {
+                        const newToken = await refreshToken(token);
+                        if (newToken) {
+                            await tokenManager.updateToken(token, newToken);
+                            results.push({ oldToken: token, newToken, status: 'success' });
+                        } else {
+                            results.push({ oldToken: token, status: 'failed', message: 'Failed to refresh token' });
+                        }
+                    } catch (error) {
+                        logger.error(`Failed to refresh token: ${error.message}`);
+                        results.push({ oldToken: token, status: 'failed', message: error.message });
+                    }
                 }
 
-                if (newToken) {
-                    // 如果刷新成功，更新token
-                    await tokenManager.updateToken(token, newToken);
-                    return new Response({
-                        message: 'Token更新成功',
-                        tokenCount: tokenManager.getTokenCount(),
-                        newToken: newToken
-                    });
-                } else {
-                    // 如果刷新失败，抛出异常
-                    throw new APIException(EX.API_THIRD_PARTY_ERROR, 'Failed to refresh token. The provided token may be invalid or expired.');
-                }
+                return new Response({
+                    message: 'Token操作完成',
+                    tokenCount: tokenManager.getTokenCount(),
+                    results
+                });
             } catch (error) {
                 if (error instanceof APIException) {
                     throw error;

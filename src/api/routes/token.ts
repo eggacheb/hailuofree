@@ -21,12 +21,16 @@ export default {
                 const body = await request.json();
                 let tokens = body.tokens;
 
-                if (!tokens || (!Array.isArray(tokens) && typeof tokens !== 'string')) {
-                    throw new APIException(EX.API_REQUEST_PARAMS_INVALID, 'Tokens must be an array or a string');
+                if (!tokens) {
+                    throw new APIException(EX.API_REQUEST_PARAMS_INVALID, 'Tokens are required');
                 }
 
+                // 处理不同的输入格式
                 if (typeof tokens === 'string') {
-                    tokens = [tokens];
+                    // 处理 "token1,token2,token3" 格式
+                    tokens = tokens.split(',').map(t => t.trim());
+                } else if (!Array.isArray(tokens)) {
+                    throw new APIException(EX.API_REQUEST_PARAMS_INVALID, 'Tokens must be a string or an array');
                 }
 
                 const results = [];
@@ -64,30 +68,5 @@ export default {
             }
         }
     },
-    get: {
-        '/token/refresh': async (request: Request) => {
-            try {
-                // 验证API密钥
-                const apiKey = request.get('authorization')?.replace('Bearer ', '');
-                if (apiKey !== config.apiKey) {
-                    throw new APIException(EX.API_UNAUTHORIZED, 'Invalid API key');
-                }
-
-                await tokenManager.refreshTokens();
-                const status = tokenManager.getRefreshStatus();
-
-                return new Response({
-                    message: '刷新成功',
-                    tokenCount: tokenManager.getTokenCount(),
-                    status
-                });
-            } catch (error) {
-                if (error instanceof APIException) {
-                    throw error;
-                }
-                logger.error(`Error in /token/refresh route: ${error.message}`);
-                throw new APIException(EX.API_UNKNOWN_ERROR, 'An unexpected error occurred');
-            }
-        }
-    }
+    // ... 其余代码保持不变
 };

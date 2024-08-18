@@ -19,7 +19,7 @@ export default {
                 }
 
                 const body = await request.json();
-                let tokens = body.tokens;
+                let tokens = body.tokens || body.token;
 
                 if (!tokens) {
                     throw new APIException(EX.API_REQUEST_PARAMS_INVALID, 'Tokens are required');

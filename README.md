@@ -297,9 +297,9 @@ npm run build
 启动服务
 
 ```shell
-pm2 start dist/index.js --name "hailuo-free-api"
+pm2 start dist/index.js --name "hailuo-free-api" -- --port=PORT
 ```
-
+PORT为运行端口
 查看服务实时日志
 
 ```shell

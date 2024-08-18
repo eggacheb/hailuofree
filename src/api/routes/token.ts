@@ -27,8 +27,8 @@ export default {
 
                 // 处理不同的输入格式
                 if (typeof tokens === 'string') {
-                    // 处理 "token1,token2,token3" 格式
-                    tokens = tokens.split(',').map(t => t.trim());
+                    // 处理 "token1,token2,token3" 格式或单个token
+                    tokens = tokens.includes(',') ? tokens.split(',').map(t => t.trim()) : [tokens];
                 } else if (!Array.isArray(tokens)) {
                     throw new APIException(EX.API_REQUEST_PARAMS_INVALID, 'Tokens must be a string or an array');
                 }
@@ -68,5 +68,30 @@ export default {
             }
         }
     },
-    // ... 其余代码保持不变
+    get: {
+        '/token/refresh': async (request: Request) => {
+            try {
+                // 验证API密钥
+                const apiKey = request.get('authorization')?.replace('Bearer ', '');
+                if (apiKey !== config.apiKey) {
+                    throw new APIException(EX.API_UNAUTHORIZED, 'Invalid API key');
+                }
+
+                await tokenManager.refreshTokens();
+                const status = tokenManager.getRefreshStatus();
+
+                return new Response({
+                    message: '刷新成功',
+                    tokenCount: tokenManager.getTokenCount(),
+                    status
+                });
+            } catch (error) {
+                if (error instanceof APIException) {
+                    throw error;
+                }
+                logger.error(`Error in /token/refresh route: ${error.message}`);
+                throw new APIException(EX.API_UNKNOWN_ERROR, 'An unexpected error occurred');
+            }
+        }
+    }
 };

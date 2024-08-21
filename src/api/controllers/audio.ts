@@ -37,10 +37,17 @@ async function createSpeech(
   voice: string,
   token: string
 ) {
+  // 移除中文括号和英文括号，但保留内容
+  const processedInput = input.replace(/[（(](.+?)[）)]/g, '$1');
+
+  // 添加日志记录原始输入和处理后的输入
+  logger.info(`Original input: "${input}"`);
+  logger.info(`Processed input: "${processedInput}"`);
+
   // 先由hailuo复述语音内容获得会话ID和消息ID
   const answer = await chat.createRepeatCompletion(
     model,
-    input.replace(/\n/g, "。"),
+    processedInput.replace(/\n/g, "。"),
     token
   );
   const { id: convId, message_id: messageId } = answer;

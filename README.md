@@ -156,7 +156,7 @@ Before using the API, you need to configure your Hailuo AI tokens:
 ### Adding or Updating Tokens
 
 To add or update tokens, send a POST request to `/v1/token`. This endpoint now supports multiple formats for token submission:
-
+在hailuofree/src/lib/config.ts下修改密钥sk-hailuofreeapi
 1. Comma-separated string:
 ```bash
 curl -X POST http://localhost:8000/v1/token \
@@ -254,7 +254,7 @@ curl -X POST http://localhost:8000/v1/audio/speech \
   --output speech.mp3
 ```
 
-Note: Replace `sk-hailuofreeapi` with your actual API key if you've configured a custom one.
+Note: Replace `sk-hailuofreeapi` with your actual API key if you've configured a custom one,在hailuofree/src/lib/config.ts下修改自定义密钥.
 
 ## Important Notes
 
